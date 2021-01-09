@@ -1,2 +1,2 @@
 [workspace]
-members = ["whaterror"]
+members = ["whaterror", "whaterror_macros"]
