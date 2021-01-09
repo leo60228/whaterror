@@ -1,5 +1,8 @@
 use std::convert::Infallible;
 
+#[doc(transparent)]
+pub use whaterror_macros::*;
+
 pub trait FatalError<T> {
     fn handle(self, handler: T);
 }
@@ -21,13 +24,5 @@ impl<T> Termination<T> for () {
 
     fn into_result(self) -> Result<(), Self::Err> {
         Ok(self)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }
