@@ -1,10 +1,10 @@
 use proc_macro::TokenStream as ProcTokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::*;
 use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    parse_macro_input, parse_quote,
+    parse_quote,
     spanned::Spanned,
     Expr, ExprBlock, ExprClosure, Ident, ItemFn, ReturnType, TypeTuple,
 };
@@ -35,10 +35,25 @@ impl Parse for MacroArgs {
 pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStream {
     dummy::set_dummy(item.clone().into());
 
-    let attr = parse_macro_input!(attr as MacroArgs);
-    let inner_main_fn = parse_macro_input!(item as ItemFn);
+    let attr: TokenStream = attr.into();
+    let item: TokenStream = item.into();
 
-    let expr = attr.expr;
+    let args = if attr.is_empty() {
+        emit_call_site_error!("missing arguments");
+        None
+    } else {
+        let span = SpanRange::from_tokens(&attr);
+
+        match syn::parse2::<MacroArgs>(attr) {
+            Ok(args) => Some(args),
+            Err(err) => {
+                emit_error!(span, "{}", err);
+                None
+            }
+        }
+    };
+
+    let inner_main_fn = syn::parse2::<ItemFn>(item).unwrap_or_abort();
 
     if let Some(constness) = &inner_main_fn.sig.constness {
         emit_error!(constness.span(), "const fns are not supported");
@@ -73,13 +88,20 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
         );
     }
 
-    let whaterror_str = proc_macro_crate::crate_name("whaterror")
-        .map_err(|x| Diagnostic::new(Level::Error, x))
-        .unwrap_or_abort();
-
-    let whaterror = Ident::new(&whaterror_str, Span::call_site());
+    let whaterror_str = if matches!(std::env::var("CARGO_PKG_NAME"), Ok(x) if x == "whaterror") {
+        "whaterror".to_string()
+    } else {
+        proc_macro_crate::crate_name("whaterror")
+            .map_err(|x| Diagnostic::new(Level::Error, x))
+            .unwrap_or_abort()
+    };
 
     abort_if_dirty();
+
+    let args = args.unwrap();
+    let expr = args.expr;
+
+    let whaterror = Ident::new(&whaterror_str, Span::call_site());
 
     let ident = &inner_main_fn.sig.ident;
 
