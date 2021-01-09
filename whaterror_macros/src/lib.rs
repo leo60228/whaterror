@@ -6,7 +6,7 @@ use syn::{
     parse::{Parse, ParseStream, Result},
     parse_macro_input, parse_quote,
     spanned::Spanned,
-    Expr, Ident, ItemFn, ReturnType,
+    Expr, ExprBlock, ExprClosure, Ident, ItemFn, ReturnType, TypeTuple,
 };
 
 fn try_fold1<I, F>(mut iter: I, f: F) -> Option<I::Item>
@@ -36,38 +36,39 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
     dummy::set_dummy(item.clone().into());
 
     let attr = parse_macro_input!(attr as MacroArgs);
-    let inner_main = parse_macro_input!(item as ItemFn);
+    let inner_main_fn = parse_macro_input!(item as ItemFn);
 
     let expr = attr.expr;
 
-    if let Some(constness) = &inner_main.sig.constness {
+    if let Some(constness) = &inner_main_fn.sig.constness {
         emit_error!(constness.span(), "const fns are not supported");
     }
 
-    if let Some(asyncness) = &inner_main.sig.asyncness {
+    if let Some(asyncness) = &inner_main_fn.sig.asyncness {
         emit_error!(asyncness.span(), "async fns are not supported");
     }
 
-    if !inner_main.sig.generics.params.is_empty() || inner_main.sig.generics.where_clause.is_some()
+    if !inner_main_fn.sig.generics.params.is_empty()
+        || inner_main_fn.sig.generics.where_clause.is_some()
     {
         emit_error!(
-            inner_main.sig.generics.span(),
+            inner_main_fn.sig.generics.span(),
             "generic functions are not supported"
         );
     }
 
-    if !inner_main.sig.inputs.is_empty() {
-        emit_error!(inner_main.sig.inputs.span(), "arguments are not supported");
+    if !inner_main_fn.sig.inputs.is_empty() {
+        emit_error!(
+            inner_main_fn.sig.inputs.span(),
+            "arguments are not supported"
+        );
     }
 
-    if let Some(variadic) = &inner_main.sig.variadic {
-        emit_error!(variadic.span(), "variadic functions are not supported");
-    }
-
-    if !inner_main.attrs.is_empty() {
+    if !inner_main_fn.attrs.is_empty() {
         emit_warning!(
-            try_fold1(inner_main.attrs.iter().map(Spanned::span), |a, b| a.join(b))
-                .unwrap_or_else(Span::call_site),
+            try_fold1(inner_main_fn.attrs.iter().map(Spanned::span), |a, b| a
+                .join(b))
+            .unwrap_or_else(Span::call_site),
             "attributes may have unexpected behavior"
         );
     }
@@ -80,18 +81,63 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
     abort_if_dirty();
 
-    let ident = &inner_main.sig.ident;
+    let ident = &inner_main_fn.sig.ident;
 
-    let mut outer_main = inner_main.clone();
+    let mut outer_main = inner_main_fn.clone();
+
+    let inner_main = ExprClosure {
+        attrs: vec![],
+        asyncness: None,
+        movability: None,
+        capture: Some(Default::default()),
+        or1_token: Default::default(),
+        inputs: Default::default(),
+        or2_token: Default::default(),
+        output: match inner_main_fn.sig.output {
+            ReturnType::Default => ReturnType::Type(
+                Default::default(),
+                Box::new(
+                    TypeTuple {
+                        paren_token: Default::default(),
+                        elems: Default::default(),
+                    }
+                    .into(),
+                ),
+            ),
+            x @ ReturnType::Type(_, _) => x,
+        },
+        body: Box::new(
+            ExprBlock {
+                attrs: vec![],
+                label: None,
+                block: *inner_main_fn.block,
+            }
+            .into(),
+        ),
+    };
+
+    let inner = Ident::new("inner", Span::mixed_site());
+
     outer_main.sig.output = ReturnType::Default;
     outer_main.block = Box::new(parse_quote! {{
-        extern crate #whaterror as whaterror;
+        let #inner = #inner_main;
 
-        #inner_main
+        {
+            extern crate #whaterror as whaterror;
 
-        let ret = #ident();
-        if <_ as whaterror::Termination<_>>::failed(&ret) {
-            <_ as whaterror::Termination<_>>::handle(ret, #expr);
+            // help out type inference
+            fn handle<R, H>(result: R, handler: fn() -> H)
+            where
+                R: whaterror::Termination<H>
+            {
+                use whaterror::{Termination, FatalError};
+
+                if let Err(e) = result.into_result() {
+                    e.handle(handler());
+                }
+            }
+
+            handle(#ident(), || #expr);
         }
     }});
 

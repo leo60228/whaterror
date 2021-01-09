@@ -1,0 +1,53 @@
+error: const fns are not supported
+ --> $DIR/unsupported.rs:6:1
+  |
+6 | const fn const_fn() {}
+  | ^^^^^
+
+error: async fns are not supported
+ --> $DIR/unsupported.rs:9:1
+  |
+9 | async fn async_fn() {}
+  | ^^^^^
+
+error: generic functions are not supported
+  --> $DIR/unsupported.rs:12:14
+   |
+12 | fn generic_fn<T>() {}
+   |              ^^^
+
+error: arguments are not supported
+  --> $DIR/unsupported.rs:15:14
+   |
+15 | fn arguments(_x: i32) {}
+   |              ^^^^^^^
+
+error: arguments are not supported
+  --> $DIR/unsupported.rs:18:31
+   |
+18 | unsafe extern "C" fn variadic(_arg: i32, _args: ...) {}
+   |                               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: attributes may have unexpected behavior
+  --> $DIR/unsupported.rs:21:1
+   |
+21 | #[warn(warnings)]
+   | ^^^^^^^^^^^^^^^^^
+
+error: async fns are not supported
+  --> $DIR/unsupported.rs:25:1
+   |
+25 | async fn generic_async_args<T>(_x: T) {}
+   | ^^^^^
+
+error: generic functions are not supported
+  --> $DIR/unsupported.rs:25:28
+   |
+25 | async fn generic_async_args<T>(_x: T) {}
+   |                            ^^^
+
+error: arguments are not supported
+  --> $DIR/unsupported.rs:25:32
+   |
+25 | async fn generic_async_args<T>(_x: T) {}
+   |                                ^^^^^
