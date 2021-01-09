@@ -1,12 +1,12 @@
 use proc_macro::TokenStream as ProcTokenStream;
+use proc_macro2::Span;
 use proc_macro_error::*;
 use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream, Result},
     parse_macro_input, parse_quote,
-    ReturnType,
     spanned::Spanned,
-    Expr, ItemFn,
+    Expr, Ident, ItemFn, ReturnType,
 };
 
 fn try_fold1<I, F>(mut iter: I, f: F) -> Option<I::Item>
@@ -14,7 +14,8 @@ where
     I: Iterator,
     F: FnMut(I::Item, I::Item) -> Option<I::Item>,
 {
-    iter.try_fold(iter.next()?, f)
+    let elem = iter.next()?;
+    iter.try_fold(elem, f)
 }
 
 struct MacroArgs {
@@ -32,7 +33,7 @@ impl Parse for MacroArgs {
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStream {
-    dummy::set_dummy(item.into());
+    dummy::set_dummy(item.clone().into());
 
     let attr = parse_macro_input!(attr as MacroArgs);
     let inner_main = parse_macro_input!(item as ItemFn);
@@ -65,14 +66,17 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
     if !inner_main.attrs.is_empty() {
         emit_warning!(
-            try_fold1(inner_main.attrs.iter().map(Spanned::span), |a, b| a.join(b)),
+            try_fold1(inner_main.attrs.iter().map(Spanned::span), |a, b| a.join(b))
+                .unwrap_or_else(Span::call_site),
             "attributes may have unexpected behavior"
         );
     }
 
-    let whaterror = proc_macro_crate::crate_name("whaterror")
+    let whaterror_str = proc_macro_crate::crate_name("whaterror")
         .map_err(|x| Diagnostic::new(Level::Error, x))
         .unwrap_or_abort();
+
+    let whaterror = Ident::new(&whaterror_str, Span::call_site());
 
     abort_if_dirty();
 
