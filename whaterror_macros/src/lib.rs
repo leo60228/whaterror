@@ -103,8 +103,6 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
     let whaterror = Ident::new(&whaterror_str, Span::call_site());
 
-    let ident = &inner_main_fn.sig.ident;
-
     let mut outer_main = inner_main_fn.clone();
 
     let inner_main = ExprClosure {
@@ -146,20 +144,16 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
         {
             extern crate #whaterror as whaterror;
+            use ::whaterror::{Termination, FatalError};
 
             // help out type inference
-            fn handle<R, H>(result: R, handler: fn() -> H)
-            where
-                R: whaterror::Termination<H>
-            {
-                use whaterror::{Termination, FatalError};
-
+            fn handle<R: Termination<H>, H>(result: R, handler: fn() -> H) {
                 if let Err(e) = result.into_result() {
                     e.handle(handler());
                 }
             }
 
-            handle(#ident(), || #expr);
+            handle(#inner(), || #expr);
         }
     }});
 
