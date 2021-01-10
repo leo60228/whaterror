@@ -88,20 +88,10 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
         );
     }
 
-    let whaterror_str = if matches!(std::env::var("CARGO_PKG_NAME"), Ok(x) if x == "whaterror") {
-        "whaterror".to_string()
-    } else {
-        proc_macro_crate::crate_name("whaterror")
-            .map_err(|x| Diagnostic::new(Level::Error, x))
-            .unwrap_or_abort()
-    };
-
     abort_if_dirty();
 
     let args = args.unwrap();
     let expr = args.expr;
-
-    let whaterror = Ident::new(&whaterror_str, Span::call_site());
 
     let mut outer_main = inner_main_fn.clone();
 
@@ -145,7 +135,6 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
         let #thunk = || #expr;
 
         {
-            extern crate #whaterror as whaterror;
             use ::whaterror::{Termination, FatalError, terminate};
 
             // help out type inference
