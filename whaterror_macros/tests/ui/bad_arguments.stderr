@@ -1,0 +1,41 @@
+error: expected `fn`
+ --> $DIR/bad_arguments.rs:4:7
+  |
+4 | const NOT_A_FUNCTION: () = ();
+  |       ^^^^^^^^^^^^^^
+
+error: missing arguments
+ --> $DIR/bad_arguments.rs:6:1
+  |
+6 | #[whaterror]
+  | ^^^^^^^^^^^^
+  |
+  = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: missing arguments
+ --> $DIR/bad_arguments.rs:9:1
+  |
+9 | #[whaterror]
+  | ^^^^^^^^^^^^
+  |
+  = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: expected `fn`
+  --> $DIR/bad_arguments.rs:10:7
+   |
+10 | const NON_FUNCTION_WITHOUT_HANDLER: () = ();
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing arguments
+  --> $DIR/bad_arguments.rs:12:1
+   |
+12 | #[whaterror]
+   | ^^^^^^^^^^^^
+   |
+   = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: const fns are not supported
+  --> $DIR/bad_arguments.rs:13:1
+   |
+13 | const fn const_no_handler() {}
+   | ^^^^^
