@@ -1,4 +1,6 @@
-use std::convert::Infallible;
+mod option;
+mod result;
+mod unit;
 
 #[doc(transparent)]
 pub use whaterror_macros::*;
@@ -11,18 +13,4 @@ pub trait Termination<T> {
     type Err: FatalError<T>;
 
     fn into_result(self) -> Result<(), Self::Err>;
-}
-
-impl<T> FatalError<T> for Infallible {
-    fn handle(self, _handler: T) {
-        match self {}
-    }
-}
-
-impl<T> Termination<T> for () {
-    type Err = Infallible;
-
-    fn into_result(self) -> Result<(), Self::Err> {
-        Ok(self)
-    }
 }
