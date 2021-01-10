@@ -6,7 +6,7 @@ use syn::{
     parse::{Parse, ParseStream, Result},
     parse_quote,
     spanned::Spanned,
-    Expr, ExprBlock, ExprClosure, Ident, ItemFn, ReturnType, TypeTuple,
+    Expr, ExprBlock, ExprClosure, Ident, ItemFn, ReturnType, Type, TypeTuple,
 };
 
 fn try_fold1<I, F>(mut iter: I, f: F) -> Option<I::Item>
@@ -95,6 +95,17 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
     let mut outer_main = inner_main_fn.clone();
 
+    let output = match inner_main_fn.sig.output {
+        ReturnType::Default => Box::new(
+            TypeTuple {
+                paren_token: Default::default(),
+                elems: Default::default(),
+            }
+            .into(),
+        ),
+        ReturnType::Type(_, typ) => typ,
+    };
+
     let inner_main = ExprClosure {
         attrs: vec![],
         asyncness: None,
@@ -103,19 +114,7 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
         or1_token: Default::default(),
         inputs: Default::default(),
         or2_token: Default::default(),
-        output: match inner_main_fn.sig.output {
-            ReturnType::Default => ReturnType::Type(
-                Default::default(),
-                Box::new(
-                    TypeTuple {
-                        paren_token: Default::default(),
-                        elems: Default::default(),
-                    }
-                    .into(),
-                ),
-            ),
-            x @ ReturnType::Type(_, _) => x,
-        },
+        output: ReturnType::Type(Default::default(), output.clone()),
         body: Box::new(
             ExprBlock {
                 attrs: vec![],
@@ -129,7 +128,9 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
     let inner = Ident::new("inner", Span::mixed_site());
     let thunk = Ident::new("thunk", Span::mixed_site());
 
-    outer_main.sig.output = ReturnType::Default;
+    let return_type: Type = parse_quote!(<() as ::whaterror::Termination>::Ok);
+    outer_main.sig.output = ReturnType::Type(Default::default(), Box::new(return_type));
+
     outer_main.block = Box::new(parse_quote! {{
         let #inner = #inner_main;
         let #thunk = || #expr;
@@ -138,14 +139,21 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
             use ::whaterror::{Termination, FatalError, terminate};
 
             // help out type inference
-            fn handle<R: Termination<H>, H>(result: R, handler: fn() -> H) {
-                if let Err(e) = result.into_result() {
-                    e.handle(handler());
-                    terminate(cfg!(test));
+            fn handle<R, H>(result: R, handler: fn() -> H) -> R::Ok
+            where
+                R: Termination,
+                R::Err: FatalError<H>
+            {
+                match result.into_result() {
+                    Ok(x) => x,
+                    Err(e) => {
+                        e.handle(handler());
+                        terminate(cfg!(test))
+                    }
                 }
             }
 
-            handle(#inner(), #thunk);
+            handle(#inner(), #thunk)
         }
     }});
 

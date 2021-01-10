@@ -1,23 +1,21 @@
 use super::{FatalError, Termination};
 
-pub struct Error<T>(T);
+pub struct Error<E>(E);
 
-impl<T, F> FatalError<F> for Error<T>
+impl<E, F> FatalError<F> for Error<E>
 where
-    F: FnOnce(T),
+    F: FnOnce(E),
 {
     fn handle(self, handler: F) {
         handler(self.0);
     }
 }
 
-impl<T, F> Termination<F> for Result<(), T>
-where
-    F: FnOnce(T),
-{
-    type Err = Error<T>;
+impl<T, E> Termination for Result<T, E> {
+    type Ok = T;
+    type Err = Error<E>;
 
-    fn into_result(self) -> Result<(), Error<T>> {
+    fn into_result(self) -> Result<T, Error<E>> {
         self.map_err(Error)
     }
 }

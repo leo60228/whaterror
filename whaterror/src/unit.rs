@@ -7,7 +7,8 @@ impl<T> FatalError<T> for Infallible {
     }
 }
 
-impl<T> Termination<T> for () {
+impl Termination for () {
+    type Ok = ();
     type Err = Infallible;
 
     fn into_result(self) -> Result<(), Self::Err> {

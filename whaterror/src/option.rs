@@ -6,32 +6,20 @@ impl FatalError<()> for NoneError {
     fn handle(self, _handler: ()) {}
 }
 
-impl<T> FatalError<T> for NoneError
+impl<F> FatalError<F> for NoneError
 where
-    T: FnOnce(),
+    F: FnOnce(),
 {
-    fn handle(self, handler: T) {
+    fn handle(self, handler: F) {
         handler();
     }
 }
 
-macro_rules! imp {
-    () => {
-        type Err = NoneError;
+impl<T> Termination for Option<T> {
+    type Ok = T;
+    type Err = NoneError;
 
-        fn into_result(self) -> Result<(), Self::Err> {
-            self.ok_or(NoneError)
-        }
-    };
-}
-
-impl<T> Termination<T> for Option<()>
-where
-    T: FnOnce(),
-{
-    imp!();
-}
-
-impl Termination<()> for Option<()> {
-    imp!();
+    fn into_result(self) -> Result<Self::Ok, Self::Err> {
+        self.ok_or(NoneError)
+    }
 }
