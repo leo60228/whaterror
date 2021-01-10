@@ -3,9 +3,7 @@ use super::{FatalError, Termination};
 pub struct NoneError;
 
 impl FatalError<()> for NoneError {
-    fn handle(self, _handler: ()) {
-        std::process::exit(1);
-    }
+    fn handle(self, _handler: ()) {}
 }
 
 impl<T> FatalError<T> for NoneError
@@ -14,7 +12,6 @@ where
 {
     fn handle(self, handler: T) {
         handler();
-        std::process::exit(1);
     }
 }
 

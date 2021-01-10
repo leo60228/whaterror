@@ -144,12 +144,13 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
 
         {
             extern crate #whaterror as whaterror;
-            use ::whaterror::{Termination, FatalError};
+            use ::whaterror::{Termination, FatalError, terminate};
 
             // help out type inference
             fn handle<R: Termination<H>, H>(result: R, handler: fn() -> H) {
                 if let Err(e) = result.into_result() {
                     e.handle(handler());
+                    terminate(cfg!(test));
                 }
             }
 

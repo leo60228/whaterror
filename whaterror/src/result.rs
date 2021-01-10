@@ -8,7 +8,6 @@ where
 {
     fn handle(self, handler: F) {
         handler(self.0);
-        std::process::exit(1);
     }
 }
 
