@@ -57,8 +57,18 @@ fn no_panic_marker() -> Option<()> {
     None
 }
 
+#[whaterror(())]
+fn option_return() -> Option<i32> {
+    Some(413)
+}
+
+#[whaterror(|_| ())]
+fn result_return() -> Result<i32, ()> {
+    Ok(612)
+}
+
 macro_rules! group {
-    (#[$attr:meta] mod $group:ident { $($name:ident : $test:ident $args:tt;)* }) => {
+    (#[$attr:meta] mod $group:ident { $($name:ident : $test:expr;)* }) => {
         mod $group {
             $(
                 #[test]
@@ -66,7 +76,7 @@ macro_rules! group {
                 fn $name() {
                     #[allow(unused)]
                     use super::*;
-                    let _: () = super::$test $args;
+                    let _: () = $test;
                 }
             )*
         }
@@ -90,6 +100,8 @@ groups! {
         result_failing: ensure_panic_marker(simple_handler);
         result_passing: result_passing();
         named_handler: named_handler();
+        option_return: assert_eq!(option_return(), 413);
+        result_return: assert_eq!(result_return(), 612);
     }
 
     #[should_panic]

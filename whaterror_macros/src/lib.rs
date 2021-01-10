@@ -128,7 +128,7 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
     let inner = Ident::new("inner", Span::mixed_site());
     let thunk = Ident::new("thunk", Span::mixed_site());
 
-    let return_type: Type = parse_quote!(<() as ::whaterror::Termination>::Ok);
+    let return_type: Type = parse_quote!(<#output as ::whaterror::Termination>::Ok);
     outer_main.sig.output = ReturnType::Type(Default::default(), Box::new(return_type));
 
     outer_main.block = Box::new(parse_quote! {{
