@@ -5,6 +5,7 @@ authors = ["leo60228 <leo@60228.dev>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Macros for whaterror"
+repository = "https://github.com/leo60228/whaterror"
 
 [lib]
 proc-macro = true
