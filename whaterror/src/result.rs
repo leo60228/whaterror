@@ -1,5 +1,8 @@
+//! Implementations for `Result<T, E>`.
+
 use super::{FatalError, Termination};
 
+/// Error from a `Result<T, E>`.
 pub struct Error<E>(E);
 
 impl<E, F> FatalError<F> for Error<E>

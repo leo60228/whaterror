@@ -1,5 +1,8 @@
+//! Implementations for `Option<T>`.
+
 use super::{FatalError, Termination};
 
+/// Error used for a `None` value.
 pub struct NoneError;
 
 impl FatalError<()> for NoneError {

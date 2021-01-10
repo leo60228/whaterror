@@ -30,6 +30,7 @@ impl Parse for MacroArgs {
     }
 }
 
+/// See the crate documentation.
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStream {
