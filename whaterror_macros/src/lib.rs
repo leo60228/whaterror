@@ -137,10 +137,12 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
     };
 
     let inner = Ident::new("inner", Span::mixed_site());
+    let thunk = Ident::new("thunk", Span::mixed_site());
 
     outer_main.sig.output = ReturnType::Default;
     outer_main.block = Box::new(parse_quote! {{
         let #inner = #inner_main;
+        let #thunk = || #expr;
 
         {
             extern crate #whaterror as whaterror;
@@ -154,7 +156,7 @@ pub fn whaterror(attr: ProcTokenStream, item: ProcTokenStream) -> ProcTokenStrea
                 }
             }
 
-            handle(#inner(), || #expr);
+            handle(#inner(), #thunk);
         }
     }});
 

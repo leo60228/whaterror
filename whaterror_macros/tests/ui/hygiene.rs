@@ -3,7 +3,7 @@ mod local_hygiene {
         pub const CONSTANT: i32 = 5;
     }
 
-    #[whaterror_macros::whaterror(())]
+    #[whaterror_macros::whaterror(|| { assert_eq!(whaterror::CONSTANT, 5); let _ = inner; let _ = handle; })]
     fn local_hygiene() {
         let _ = inner;
         let _ = handle;
@@ -20,6 +20,9 @@ mod naming_conflicts {
 
     #[whaterror_macros::whaterror(())]
     fn handle() {}
+
+    #[whaterror_macros::whaterror(())]
+    fn thunk() {}
 }
 
 fn main() {}
